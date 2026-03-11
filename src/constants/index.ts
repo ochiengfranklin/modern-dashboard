@@ -1,6 +1,6 @@
 export const DEPARTMENTS = [
     'CS',
-    'Maths',
+    'Math',
     'English'
 ]
 
