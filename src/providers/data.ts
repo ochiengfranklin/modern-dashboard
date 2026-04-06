@@ -51,6 +51,7 @@ const options: CreateDataProviderOptions = {
 
     }
 }
+console.log('dataprovider')
 
 const { dataProvider } = createDataProvider( BACKEND_BASE_URL, options);
 export  {dataProvider};
