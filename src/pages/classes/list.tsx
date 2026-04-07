@@ -144,7 +144,7 @@ const ClassesList = () => {
         ],
         []
     );
-
+console.log('classList')
     const { query: subjectsQuery } = useList<Subject>({
         resource: "subjects",
         pagination: {
