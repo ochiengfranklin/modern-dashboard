@@ -35,7 +35,7 @@ const options: CreateDataProviderOptions = {
                 }
             });
 
-            console.log('options')
+
             return params;
         },
         mapResponse: async (response) => {
