@@ -44,7 +44,7 @@ const ClassesCreate = () => {
             status: "active",
         },
     });
-console.log('form')
+
     const {
         refineCore: { onFinish },
         handleSubmit,
