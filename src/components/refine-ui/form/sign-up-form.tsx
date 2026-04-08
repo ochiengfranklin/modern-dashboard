@@ -20,8 +20,10 @@ export const SignUpForm = () => {
     const { title } = useRefineOptions();
     const { mutate: register } = useRegister();
 
+    // Email/password sign-up
     const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+
         if (password !== confirmPassword) {
             open?.({
                 type: "error",
@@ -31,11 +33,23 @@ export const SignUpForm = () => {
             return;
         }
 
-        register({ email, password, name: email.split("@")[0] }); // fallback name
+        // Default role for email sign-up
+        const role = "user";
+
+        register({
+            email,
+            password,
+            name: email.split("@")[0],
+            role,
+        });
     };
 
+    // OAuth sign-up (calls provider's OAuth flow instead of register)
     const handleOAuthSignUp = (providerName: "google" | "github") => {
-        register({ providerName, name: email.split("@")[0] }); // fallback name
+        // Replace this with your provider's actual OAuth starter function
+        // For refine-auth, often it's signInWithProvider or similar
+        const oauthUrl = `/api/auth/${providerName}`; // backend endpoint to start OAuth
+        window.location.href = oauthUrl; // redirect user to OAuth flow
     };
 
     return (
@@ -85,10 +99,20 @@ export const SignUpForm = () => {
 
                         <div className={cn("flex flex-col gap-4 mt-6")}>
                             <div className={cn("grid grid-cols-2 gap-6")}>
-                                <Button variant="outline" className={cn("flex items-center gap-2")} onClick={() => handleOAuthSignUp("google")} type="button">
+                                <Button
+                                    variant="outline"
+                                    className={cn("flex items-center gap-2")}
+                                    onClick={() => handleOAuthSignUp("google")}
+                                    type="button"
+                                >
                                     Google
                                 </Button>
-                                <Button variant="outline" className={cn("flex items-center gap-2")} onClick={() => handleOAuthSignUp("github")} type="button">
+                                <Button
+                                    variant="outline"
+                                    className={cn("flex items-center gap-2")}
+                                    onClick={() => handleOAuthSignUp("github")}
+                                    type="button"
+                                >
                                     GitHub
                                 </Button>
                             </div>

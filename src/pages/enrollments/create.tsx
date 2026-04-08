@@ -25,6 +25,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+
 import type { ClassDetails, User } from "@/types";
 
 const enrollSchema = z.object({
@@ -43,9 +44,7 @@ const EnrollmentsCreate = () => {
 
     const { query: classesQuery } = useList<ClassDetails>({
         resource: "classes",
-        pagination: {
-            pageSize: 100,
-        },
+        pagination: { pageSize: 100 },
     });
 
     const classes = classesQuery.data?.data ?? [];
@@ -53,9 +52,7 @@ const EnrollmentsCreate = () => {
 
     const form = useForm<EnrollFormValues>({
         resolver: zodResolver(enrollSchema),
-        defaultValues: {
-            classId: 0,
-        },
+        defaultValues: { classId: 0 },
     });
 
     const selectedClassId = form.watch("classId");
@@ -63,27 +60,26 @@ const EnrollmentsCreate = () => {
     const onSubmit = async (values: EnrollFormValues) => {
         if (!currentUser?.id) return;
 
-        const response = await createEnrollment({
-            resource: "enrollments",
-            values: {
-                classId: values.classId,
-                studentId: currentUser.id,
-            },
-        });
+        try {
+            const response = await createEnrollment({
+                resource: "enrollments",
+                values: {
+                    classId: values.classId,
+                    studentId: currentUser.id,
+                },
+            });
 
-        navigate("/enrollments/confirm", {
-            state: {
-                enrollment: response?.data,
-            },
-        });
+            navigate("/enrollments/confirm", {
+                state: { enrollment: response?.data },
+            });
+        } catch (error) {
+            console.error("Failed to enroll:", error);
+            // Optionally, show a toast or set a form error here
+        }
     };
 
     const isSubmitDisabled =
-        isPending ||
-        classesLoading ||
-        !currentUser?.id ||
-        !classes.length ||
-        !selectedClassId;
+        isPending || classesLoading || !currentUser?.id || !classes.length || !selectedClassId;
 
     return (
         <CreateView className="class-view">
@@ -108,10 +104,7 @@ const EnrollmentsCreate = () => {
 
                     <CardContent className="mt-7">
                         <Form {...form}>
-                            <form
-                                onSubmit={form.handleSubmit(onSubmit)}
-                                className="space-y-5"
-                            >
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                                 <FormField
                                     control={form.control}
                                     name="classId"

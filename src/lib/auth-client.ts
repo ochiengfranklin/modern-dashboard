@@ -1,12 +1,12 @@
 import { createAuthClient } from "better-auth/react";
-import { BACKEND_BASE_URL, USER_ROLES } from "../constants";
+import { BACKEND_BASE_URL } from "../constants";
 
 export const authClient = createAuthClient({
     baseURL: `${BACKEND_BASE_URL}auth`,
     user: {
         additionalFields: {
             role: {
-                type: USER_ROLES,
+                type: ["student", "teacher", "admin"], // fixed: enum-style array
                 required: true,
                 defaultValue: "student",
                 input: true,

@@ -1,3 +1,5 @@
+"use client";
+
 import { AdvancedImage } from "@cloudinary/react";
 import { useShow } from "@refinedev/core";
 import { useTable } from "@refinedev/react-table";
@@ -55,8 +57,8 @@ const ClassesShow = () => {
                         <div className="flex flex-col truncate">
                             <span className="truncate">{row.original.name}</span>
                             <span className="text-xs text-muted-foreground truncate">
-                {row.original.email}
-              </span>
+                                {row.original.email}
+                            </span>
                         </div>
                     </div>
                 ),
@@ -80,25 +82,28 @@ const ClassesShow = () => {
         []
     );
 
-    const studentsTable = useTable<ClassUser>({
-        columns: studentColumns,
-        refineCoreProps: {
-            resource: `classes/${classId}/users`,
-            pagination: {
-                pageSize: 3,
-                mode: "server",
+    // Guard against empty classId to avoid invalid API call
+    const studentsTable = classId
+        ? useTable<ClassUser>({
+            columns: studentColumns,
+            refineCoreProps: {
+                resource: `classes/${classId}/users`,
+                pagination: {
+                    pageSize: 3,
+                    mode: "server",
+                },
+                filters: {
+                    permanent: [
+                        {
+                            field: "role",
+                            operator: "eq",
+                            value: "student",
+                        },
+                    ],
+                },
             },
-            filters: {
-                permanent: [
-                    {
-                        field: "role",
-                        operator: "eq",
-                        value: "student",
-                    },
-                ],
-            },
-        },
-    });
+        })
+        : null;
 
     if (query.isLoading || query.isError || !classDetails) {
         return (
@@ -184,7 +189,6 @@ const ClassesShow = () => {
                                     src={classDetails.teacher?.image ?? placeholderUrl}
                                     alt={teacherName}
                                 />
-
                                 <div>
                                     <p>{teacherName}</p>
                                     <p>{classDetails?.teacher?.email}</p>
@@ -194,7 +198,6 @@ const ClassesShow = () => {
 
                         <div className="department">
                             <p>🏛️ Department</p>
-
                             <div>
                                 <p>{classDetails?.department?.name}</p>
                                 <p>{classDetails?.department?.description}</p>
@@ -208,7 +211,6 @@ const ClassesShow = () => {
                 {/* Subject Card */}
                 <div className="subject">
                     <p>📚 Subject</p>
-
                     <div>
                         <Badge variant="outline">
                             Code: <span>{classDetails?.subject?.code}</span>
@@ -223,7 +225,6 @@ const ClassesShow = () => {
                 {/* Join Class Section */}
                 <div className="join">
                     <h2>🎓 Join Class</h2>
-
                     <ol>
                         <li>Ask your teacher for the invite code.</li>
                         <li>Click on &quot;Join Class&quot; button.</li>
@@ -241,7 +242,11 @@ const ClassesShow = () => {
                     <CardTitle>Enrolled Students</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <DataTable table={studentsTable} paginationVariant="simple" />
+                    {classId && studentsTable ? (
+                        <DataTable table={studentsTable} paginationVariant="simple" />
+                    ) : (
+                        <p className="text-muted-foreground">No students to display.</p>
+                    )}
                 </CardContent>
             </Card>
         </ShowView>
@@ -252,9 +257,7 @@ const getInitials = (name = "") => {
     const parts = name.trim().split(" ").filter(Boolean);
     if (parts.length === 0) return "";
     if (parts.length === 1) return parts[0][0]?.toUpperCase() ?? "";
-    return `${parts[0][0] ?? ""}${
-        parts[parts.length - 1][0] ?? ""
-    }`.toUpperCase();
+    return `${parts[0][0] ?? ""}${parts[parts.length - 1][0] ?? ""}`.toUpperCase();
 };
 
 export default ClassesShow;

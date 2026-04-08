@@ -2,6 +2,18 @@ import type { AuthProvider } from "@refinedev/core";
 import { User, SignUpPayload } from "@/types";
 import { authClient } from "@/lib/auth-client";
 
+// Example server/session call
+async function getSession(): Promise<{ user: User | null }> {
+    try {
+        const res = await fetch("/api/session");
+        if (!res.ok) return { user: null };
+        const data = await res.json();
+        return { user: data?.user ?? null };
+    } catch {
+        return { user: null };
+    }
+}
+
 export const authProvider: AuthProvider = {
     register: async ({
                          email,
@@ -26,13 +38,12 @@ export const authProvider: AuthProvider = {
                     success: false,
                     error: {
                         name: "Registration failed",
-                        message:
-                            error?.message || "Unable to create account. Please try again.",
+                        message: error?.message || "Unable to create account. Please try again.",
                     },
                 };
             }
 
-            // Store user data
+            // Optional: cache user locally
             localStorage.setItem("user", JSON.stringify(data.user));
 
             return {
@@ -50,15 +61,12 @@ export const authProvider: AuthProvider = {
             };
         }
     },
+
     login: async ({ email, password }) => {
         try {
-            const { data, error } = await authClient.signIn.email({
-                email: email,
-                password: password,
-            });
+            const { data, error } = await authClient.signIn.email({ email, password });
 
             if (error) {
-                console.error("Login error from auth client:", error);
                 return {
                     success: false,
                     error: {
@@ -68,7 +76,6 @@ export const authProvider: AuthProvider = {
                 };
             }
 
-            // Store user data
             localStorage.setItem("user", JSON.stringify(data.user));
 
             return {
@@ -86,11 +93,11 @@ export const authProvider: AuthProvider = {
             };
         }
     },
+
     logout: async () => {
         const { error } = await authClient.signOut();
 
         if (error) {
-            console.error("Logout error:", error);
             return {
                 success: false,
                 error: {
@@ -107,57 +114,54 @@ export const authProvider: AuthProvider = {
             redirectTo: "/login",
         };
     },
+
     onError: async (error) => {
         if (error.response?.status === 401) {
-            return {
-                logout: true,
-            };
+            return { logout: true };
         }
-
         return { error };
     },
-    check: async () => {
-        const user = localStorage.getItem("user");
 
-        if (user) {
+    check: async () => {
+        const { user } = await getSession();
+
+        if (!user || !user.id) {
             return {
-                authenticated: true,
+                authenticated: false,
+                logout: true,
+                redirectTo: "/login",
+                error: { name: "Unauthorized", message: "Session missing or invalid" },
             };
         }
 
-        return {
-            authenticated: false,
-            logout: true,
-            redirectTo: "/login",
-            error: {
-                name: "Unauthorized",
-                message: "Check failed",
-            },
-        };
+        return { authenticated: true };
     },
+
     getPermissions: async () => {
-        const user = localStorage.getItem("user");
-
-        if (!user) return null;
-        const parsedUser: User = JSON.parse(user);
-
-        return {
-            role: parsedUser.role,
-        };
+        try {
+            const { user } = await getSession();
+            if (!user || !user.role) return null;
+            return { role: user.role };
+        } catch {
+            return null;
+        }
     },
+
     getIdentity: async () => {
-        const user = localStorage.getItem("user");
+        try {
+            const { user } = await getSession();
+            if (!user || !user.id || !user.role) return null;
 
-        if (!user) return null;
-        const parsedUser: User = JSON.parse(user);
-
-        return {
-            id: parsedUser.id,
-            name: parsedUser.name,
-            email: parsedUser.email,
-            image: parsedUser.image,
-            role: parsedUser.role,
-            imageCldPubId: parsedUser.imageCldPubId,
-        };
+            return {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                image: user.image,
+                role: user.role,
+                imageCldPubId: user.imageCldPubId,
+            };
+        } catch {
+            return null;
+        }
     },
 };
