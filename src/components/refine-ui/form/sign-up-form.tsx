@@ -1,138 +1,251 @@
-"use client";
-
-import { useState } from "react";
-import { InputPassword } from "@/components/refine-ui/form/input-password";
+import { useRegister, useLink } from "@refinedev/core";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardFooter,
+} from "@/components/ui/card";
+import { InputPassword } from "@/components/refine-ui/form/input-password";
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form";
 import { cn } from "@/lib/utils";
-import { useLink, useNotification, useRefineOptions, useRegister } from "@refinedev/core";
+
+import { ROLE_OPTIONS } from "@/constants";
+import UploadWidget from "@/components/upload-widget";
+import { UserRole } from "@/types";
+import { toast } from "sonner";
+
+const registerSchema = z.object({
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    name: z.string().min(3, "Full name must be at least 3 characters"),
+    role: z.nativeEnum(UserRole),
+    image: z.string().optional(),
+    imageCldPubId: z.string().optional(),
+});
+
+type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export const SignUpForm = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
-
-    const { open } = useNotification();
     const Link = useLink();
-    const { title } = useRefineOptions();
-    const { mutate: register } = useRegister();
+    const { mutate: register, isPending: isRegistering } = useRegister();
 
-    // Email/password sign-up
-    const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const form = useForm<RegisterFormValues>({
+        resolver: zodResolver(registerSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+            name: "",
+            role: UserRole.STUDENT,
+            image: "",
+            imageCldPubId: "",
+        },
+    });
 
-        if (password !== confirmPassword) {
-            open?.({
-                type: "error",
-                message: "Passwords don't match",
-                description: "Please make sure both password fields contain the same value.",
+    const imagePublicId = form.watch("imageCldPubId");
+
+    const onSubmit = async (values: RegisterFormValues) => {
+        try {
+            register(
+                {
+                    ...values,
+                    name: values.name,
+                    image: values.image || undefined,
+                    imageCldPubId: values.imageCldPubId || undefined,
+                },
+                {
+                    onSuccess: (data) => {
+                        if (data.success === false) {
+                            toast.error(data.error?.message, {
+                                richColors: true,
+                            });
+                            return;
+                        }
+
+                        toast.success("Account created successfully!", {
+                            richColors: true,
+                        });
+                        form.reset();
+                    },
+                }
+            );
+        } catch (error) {
+            console.error("Registration error:", error);
+            toast.error("Registration failed", {
+                richColors: true,
             });
-            return;
         }
-
-        // Default role for email sign-up
-        const role = "user";
-
-        register({
-            email,
-            password,
-            name: email.split("@")[0],
-            role,
-        });
-    };
-
-    // OAuth sign-up (calls provider's OAuth flow instead of register)
-    const handleOAuthSignUp = (providerName: "google" | "github") => {
-        // Replace this with your provider's actual OAuth starter function
-        // For refine-auth, often it's signInWithProvider or similar
-        const oauthUrl = `/api/auth/${providerName}`; // backend endpoint to start OAuth
-        window.location.href = oauthUrl; // redirect user to OAuth flow
     };
 
     return (
-        <div className={cn("flex flex-col items-center justify-center px-6 py-8 min-h-svh")}>
-            <div className={cn("flex items-center justify-center gap-2")}>
-                {title.icon && <div className={cn("text-foreground [&>svg]:w-12 [&>svg]:h-12")}>{title.icon}</div>}
+        <div className="sign-up">
+            <div className="logo">
+                <img src="/logo.png" alt="Logo" />
             </div>
 
-            <Card className={cn("sm:w-[456px] p-12 mt-6")}>
-                <CardHeader className={cn("px-0")}>
-                    <CardTitle className={cn("text-green-600 dark:text-green-400 text-3xl font-semibold")}>
-                        Sign up
-                    </CardTitle>
-                    <CardDescription className={cn("text-muted-foreground font-medium")}>
-                        Welcome Karatina University
+            <Card className="card">
+                <CardHeader className="header">
+                    <CardTitle className="title">Register</CardTitle>
+                    <CardDescription className="description">
+                        Create an account to get started.
                     </CardDescription>
                 </CardHeader>
 
-                <Separator />
+                <CardContent className="content">
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="form">
+                            {/* User Type Selection */}
+                            <FormField
+                                control={form.control}
+                                name="role"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Role *</FormLabel>
+                                        <FormControl>
+                                            <div className="roles">
+                                                {ROLE_OPTIONS.map((role) => {
+                                                    return (
+                                                        <button
+                                                            key={role.value}
+                                                            type="button"
+                                                            onClick={() => field.onChange(role.value)}
+                                                            className={cn(
+                                                                "role-button",
+                                                                field.value === role.value && "is-active"
+                                                            )}
+                                                        >
+                                                            <role.icon />
+                                                            <span>{role.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                <CardContent className={cn("px-0")}>
-                    <form onSubmit={handleSignUp}>
-                        <div className={cn("flex flex-col gap-2")}>
-                            <Label htmlFor="email">Email</Label>
-                            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                        </div>
+                            {/* Profile Photo Upload */}
+                            <FormField
+                                control={form.control}
+                                name="image"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Profile Photo</FormLabel>
+                                        <FormControl>
+                                            <UploadWidget
+                                                value={
+                                                    field.value
+                                                        ? {
+                                                            url: field.value,
+                                                            publicId: imagePublicId ?? "",
+                                                        }
+                                                        : null
+                                                }
+                                                onChange={(file) => {
+                                                    if (file) {
+                                                        field.onChange(file.url);
+                                                        form.setValue("imageCldPubId", file.publicId, {
+                                                            shouldValidate: true,
+                                                            shouldDirty: true,
+                                                        });
+                                                    } else {
+                                                        field.onChange("");
+                                                        form.setValue("imageCldPubId", "", {
+                                                            shouldValidate: true,
+                                                            shouldDirty: true,
+                                                        });
+                                                    }
+                                                }}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                        <div className={cn("relative flex flex-col gap-2 mt-6")}>
-                            <Label htmlFor="password">Password</Label>
-                            <InputPassword id="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-                        </div>
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Full Name *</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="John Doe" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                        <div className={cn("relative flex flex-col gap-2 mt-6")}>
-                            <Label htmlFor="confirmPassword">Confirm password</Label>
-                            <InputPassword id="confirmPassword" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
-                        </div>
+                            <FormField
+                                control={form.control}
+                                name="email"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Email *</FormLabel>
+                                        <FormControl>
+                                            <Input
+                                                type="email"
+                                                placeholder="john.doe@example.com"
+                                                {...field}
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                        <Button type="submit" size="lg" className={cn("w-full mt-6 bg-green-600 hover:bg-green-700 text-white")}>
-                            Sign up
-                        </Button>
+                            <FormField
+                                control={form.control}
+                                name="password"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Password *</FormLabel>
+                                        <FormControl>
+                                            <InputPassword
+                                                {...field}
+                                                placeholder="Enter your password"
+                                            />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
 
-                        <div className={cn("flex items-center gap-4 mt-6")}>
-                            <Separator className={cn("flex-1")} />
-                            <span className={cn("text-sm text-muted-foreground")}>or</span>
-                            <Separator className={cn("flex-1")} />
-                        </div>
-
-                        <div className={cn("flex flex-col gap-4 mt-6")}>
-                            <div className={cn("grid grid-cols-2 gap-6")}>
-                                <Button
-                                    variant="outline"
-                                    className={cn("flex items-center gap-2")}
-                                    onClick={() => handleOAuthSignUp("google")}
-                                    type="button"
-                                >
-                                    Google
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    className={cn("flex items-center gap-2")}
-                                    onClick={() => handleOAuthSignUp("github")}
-                                    type="button"
-                                >
-                                    GitHub
-                                </Button>
-                            </div>
-                        </div>
-                    </form>
+                            <Button
+                                type="submit"
+                                size="lg"
+                                className="submit"
+                                disabled={form.formState.isSubmitting || isRegistering}
+                            >
+                                {form.formState.isSubmitting || isRegistering
+                                    ? "Creating Account..."
+                                    : "Create Account"}
+                            </Button>
+                        </form>
+                    </Form>
                 </CardContent>
 
-                <Separator />
-
-                <CardFooter>
-                    <div className={cn("w-full text-center text-sm")}>
-                        <span className={cn("text-sm text-muted-foreground")}>Have an account? </span>
-                        <Link to="/login" className={cn("text-blue-600 dark:text-blue-400 font-semibold underline")}>
-                            Sign in
-                        </Link>
-                    </div>
+                <CardFooter className="footer">
+                    <span>Already have an account?</span>
+                    <Link to="/login">Sign in</Link>
                 </CardFooter>
             </Card>
         </div>
     );
 };
-
-SignUpForm.displayName = "SignUpForm";
