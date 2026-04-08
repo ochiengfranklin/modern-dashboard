@@ -18,8 +18,9 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 
-type DataTableProps<TData extends BaseRecord> = {
-  table: UseTableReturnType<TData, HttpError>;
+type DataTableProps<T extends BaseRecord> = {
+    table: UseTableReturnType<T>;
+    paginationVariant?: "simple" | "advanced";
 };
 
 export function DataTable<TData extends BaseRecord>({
