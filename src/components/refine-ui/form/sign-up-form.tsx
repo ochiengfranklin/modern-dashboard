@@ -1,5 +1,3 @@
-"use client";
-
 import { useRegister, useLink } from "@refinedev/core";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -59,29 +57,37 @@ export const SignUpForm = () => {
 
     const imagePublicId = form.watch("imageCldPubId");
 
-    const onSubmit = (values: RegisterFormValues) => {
-        register(
-            {
-                ...values,
-                image: values.image || undefined,
-                imageCldPubId: values.imageCldPubId || undefined,
-            },
-            {
-                onSuccess: (data) => {
-                    if (data.success === false) {
-                        toast.error(data.error?.message, { richColors: true });
-                        return;
-                    }
+    const onSubmit = async (values: RegisterFormValues) => {
+        try {
+            register(
+                {
+                    ...values,
+                    name: values.name,
+                    image: values.image || undefined,
+                    imageCldPubId: values.imageCldPubId || undefined,
+                },
+                {
+                    onSuccess: (data) => {
+                        if (data.success === false) {
+                            toast.error(data.error?.message, {
+                                richColors: true,
+                            });
+                            return;
+                        }
 
-                    toast.success("Account created successfully!", { richColors: true });
-                    form.reset();
-                },
-                onError: (error: any) => {
-                    console.error("Registration network/server error:", error);
-                    toast.error("Registration failed. Please try again.", { richColors: true });
-                },
-            }
-        );
+                        toast.success("Account created successfully!", {
+                            richColors: true,
+                        });
+                        form.reset();
+                    },
+                }
+            );
+        } catch (error) {
+            console.error("Registration error:", error);
+            toast.error("Registration failed", {
+                richColors: true,
+            });
+        }
     };
 
     return (
@@ -110,20 +116,22 @@ export const SignUpForm = () => {
                                         <FormLabel>Role *</FormLabel>
                                         <FormControl>
                                             <div className="roles">
-                                                {ROLE_OPTIONS.map((role) => (
-                                                    <button
-                                                        key={role.value}
-                                                        type="button"
-                                                        onClick={() => field.onChange(role.value)}
-                                                        className={cn(
-                                                            "role-button",
-                                                            field.value === role.value && "is-active"
-                                                        )}
-                                                    >
-                                                        <role.icon />
-                                                        <span>{role.label}</span>
-                                                    </button>
-                                                ))}
+                                                {ROLE_OPTIONS.map((role) => {
+                                                    return (
+                                                        <button
+                                                            key={role.value}
+                                                            type="button"
+                                                            onClick={() => field.onChange(role.value)}
+                                                            className={cn(
+                                                                "role-button",
+                                                                field.value === role.value && "is-active"
+                                                            )}
+                                                        >
+                                                            <role.icon />
+                                                            <span>{role.label}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         </FormControl>
                                         <FormMessage />
