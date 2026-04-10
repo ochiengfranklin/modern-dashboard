@@ -42,6 +42,9 @@ import EnrollmentsCreate from "./pages/enrollments/create";
 import EnrollmentsJoin from "./pages/enrollments/join";
 import EnrollmentConfirm from "./pages/enrollments/confirm";
 
+
+import { ForgotPasswordForm } from "./components/refine-ui/form/forgot-password-form";
+
 function App() {
     return (
         <BrowserRouter>
@@ -127,6 +130,9 @@ function App() {
                                 >
                                     <Route path="/login" element={<Login />} />
                                     <Route path="/register" element={<Register />} />
+
+                                    {/* Added Forgot Password Route */}
+                                    <Route path="/forgot-password" element={<ForgotPasswordForm />} />
                                 </Route>
 
                                 <Route
