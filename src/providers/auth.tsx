@@ -84,17 +84,12 @@ export const authProvider: AuthProvider = {
             };
         }
     },
-
-    // --- CORRECTED FORGOT PASSWORD METHOD ---
     forgotPassword: async ({ email }) => {
         try {
-            // We use @ts-expect-error to bypass the strict type checking for this
-            // specific method. It forces the compiler to accept the function.
-
             // @ts-expect-error - Better Auth types may be out of sync
             const { error } = await authClient.forgetPassword({
                 email: email,
-                redirectTo: "/reset-password", // Where the email link points
+                redirectTo: "/reset-password",
             });
 
             if (error) {
@@ -122,8 +117,6 @@ export const authProvider: AuthProvider = {
             };
         }
     },
-    // ------------------------------------------
-
     logout: async () => {
         const { error } = await authClient.signOut();
 
@@ -154,25 +147,40 @@ export const authProvider: AuthProvider = {
 
         return { error };
     },
-    check: async () => {
-        const user = localStorage.getItem("user");
 
-        if (user) {
-            return {
-                authenticated: true,
-            };
+    // --- UPDATED CHECK METHOD FOR SOCIAL LOGINS ---
+    check: async () => {
+        try {
+            // Ask Better Auth if a valid session exists (checks the cookies Google/GitHub set)
+            const { data } = await authClient.getSession();
+
+            if (data?.session) {
+                // Since they are logged in via social, sync user data to localStorage
+                // so the rest of your app can still use it!
+                localStorage.setItem("user", JSON.stringify(data.user));
+
+                return {
+                    authenticated: true,
+                };
+            }
+        } catch (error) {
+            console.error("Session check error:", error);
         }
 
+        // If no Better Auth session exists, clean up and kick them out
+        localStorage.removeItem("user");
         return {
             authenticated: false,
             logout: true,
             redirectTo: "/login",
             error: {
                 name: "Unauthorized",
-                message: "Check failed",
+                message: "Please log in to continue",
             },
         };
     },
+    // ----------------------------------------------
+
     getPermissions: async () => {
         const user = localStorage.getItem("user");
 

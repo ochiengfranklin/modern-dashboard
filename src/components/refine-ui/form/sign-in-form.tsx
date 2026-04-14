@@ -28,6 +28,9 @@ import {
 } from "@/components/ui/form";
 import { useLink, useLogin } from "@refinedev/core";
 
+// --- ADDED THIS IMPORT ---
+import { authClient } from "@/lib/auth-client";
+
 const signInSchema = z.object({
     email: z.string().email("Invalid email address"),
     password: z.string().min(1, "Password is required"),
@@ -38,7 +41,6 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 
 export const SignInForm = () => {
     const Link = useLink();
-
     const { mutate: login, isPending: isLoggingIn } = useLogin();
 
     const form = useForm<SignInFormValues>({
@@ -51,22 +53,37 @@ export const SignInForm = () => {
     });
 
     const handleSignIn = async (values: SignInFormValues) => {
+        // We keep useLogin here because it handles your email/password perfectly
         login({
             email: values.email,
             password: values.password,
         });
     };
 
+    // --- RECTIFIED SOCIAL LOGIN HANDLERS ---
+    const handleGoogleLogin = async () => {
+        await authClient.signIn.social({
+            provider: "google",
+            // This forces Google to send the user back to your frontend!
+            callbackURL: window.location.origin,
+        });
+    };
+
+    const handleGithubLogin = async () => {
+        await authClient.signIn.social({
+            provider: "github",
+            // This forces GitHub to send the user back to your frontend!
+            callbackURL: window.location.origin,
+        });
+    };
+    // ---------------------------------------
+
     return (
-        /* Added a full-screen flex container to center the form vertically and horizontally.
-          The bg-muted/20 (optional) gives a nice subtle background contrast.
-        */
         <div className="flex min-h-screen flex-col items-center justify-center p-4 bg-muted/20">
             <div className="mb-8">
                 <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
             </div>
 
-            {/* Constrained the card width to a maximum of 'md' (28rem/448px) and ensured it takes full width up to that point */}
             <Card className="w-full max-w-md shadow-lg">
                 <CardHeader className="space-y-1 text-center">
                     <CardTitle className="text-2xl font-bold tracking-tight">Sign in</CardTitle>
@@ -111,7 +128,6 @@ export const SignInForm = () => {
                                 )}
                             />
 
-                            {/* Flexbox to push Remember Me and Forgot Password to opposite sides */}
                             <div className="flex items-center justify-between">
                                 <FormField
                                     control={form.control}
@@ -152,15 +168,14 @@ export const SignInForm = () => {
                                 {isLoggingIn ? "Signing in..." : "Sign in"}
                             </Button>
 
-                            {/* Standard layout for the "or" divider line */}
                             <div className="relative my-6">
                                 <div className="absolute inset-0 flex items-center">
                                     <Separator className="w-full" />
                                 </div>
                                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
+                                    <span className="bg-background px-2 text-muted-foreground">
+                                        Or continue with
+                                    </span>
                                 </div>
                             </div>
 
@@ -169,6 +184,8 @@ export const SignInForm = () => {
                                     variant="outline"
                                     className="w-full space-x-2"
                                     type="button"
+                                    onClick={handleGoogleLogin}
+                                    disabled={isLoggingIn}
                                 >
                                     <svg
                                         width="21"
@@ -185,10 +202,13 @@ export const SignInForm = () => {
                                     </svg>
                                     <span>Google</span>
                                 </Button>
+
                                 <Button
                                     variant="outline"
                                     className="w-full space-x-2"
                                     type="button"
+                                    onClick={handleGithubLogin}
+                                    disabled={isLoggingIn}
                                 >
                                     <svg
                                         width="21"
